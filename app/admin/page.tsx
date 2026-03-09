@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import imageCompression from "browser-image-compression";
 import {
   getCategories,
@@ -29,6 +29,8 @@ export default function AdminPage() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+
+  const importInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const auth = localStorage.getItem("admin-auth");
@@ -242,6 +244,65 @@ export default function AdminPage() {
     }
   }
 
+  function handleExportData() {
+    const backupData = {
+      categories,
+      products,
+      exportedAt: new Date().toISOString(),
+    };
+
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], {
+      type: "application/json",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `jewelry-menu-backup-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleImportClick() {
+    importInputRef.current?.click();
+  }
+
+  function handleImportData(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      try {
+        const text = reader.result as string;
+        const parsed = JSON.parse(text);
+
+        const importedCategories: Category[] = Array.isArray(parsed.categories)
+          ? parsed.categories
+          : [];
+        const importedProducts: Product[] = Array.isArray(parsed.products)
+          ? parsed.products
+          : [];
+
+        setCategories(importedCategories);
+        setProducts(importedProducts);
+
+        saveCategories(importedCategories);
+        saveProducts(importedProducts);
+
+        alert("Data imported successfully");
+      } catch (error) {
+        console.error(error);
+        alert("Invalid backup file");
+      } finally {
+        e.target.value = "";
+      }
+    };
+
+    reader.readAsText(file);
+  }
+
   if (!authenticated) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-black text-white">
@@ -279,15 +340,39 @@ export default function AdminPage() {
   return (
     <main className="min-h-screen bg-black p-6 text-white md:p-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-6 flex items-center justify-between gap-3">
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <h1 className="text-4xl font-bold text-yellow-400">Admin Panel</h1>
 
-          <button
-            onClick={handleLogout}
-            className="rounded-lg bg-red-500 px-4 py-2 text-sm text-white"
-          >
-            Logout
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={handleExportData}
+              className="rounded-lg bg-emerald-500 px-4 py-2 text-sm text-white"
+            >
+              Export Data
+            </button>
+
+            <button
+              onClick={handleImportClick}
+              className="rounded-lg bg-cyan-500 px-4 py-2 text-sm text-white"
+            >
+              Import Data
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="rounded-lg bg-red-500 px-4 py-2 text-sm text-white"
+            >
+              Logout
+            </button>
+
+            <input
+              ref={importInputRef}
+              type="file"
+              accept="application/json"
+              onChange={handleImportData}
+              className="hidden"
+            />
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
