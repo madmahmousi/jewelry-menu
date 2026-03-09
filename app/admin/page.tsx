@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useState } from "react";
+import imageCompression from "browser-image-compression";
 import {
   getCategories,
   getProducts,
@@ -144,7 +145,6 @@ export default function AdminPage() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // این دو مقدار را با مقادیر واقعی Cloudinary خودت عوض کن
     const cloudName = "dsbmiysgs";
     const uploadPreset = "jewelry_unsigned";
 
@@ -153,9 +153,15 @@ export default function AdminPage() {
 
       const uploadedUrls: string[] = [];
 
-      for (const file of Array.from(files)) {
+      for (const originalFile of Array.from(files)) {
+        const compressedFile = await imageCompression(originalFile, {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1600,
+          useWebWorker: true,
+        });
+
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", compressedFile);
         formData.append("upload_preset", uploadPreset);
 
         const response = await fetch(
@@ -167,7 +173,6 @@ export default function AdminPage() {
         );
 
         const text = await response.text();
-        console.log("Cloudinary raw response:", text);
 
         let data: any = {};
         try {
