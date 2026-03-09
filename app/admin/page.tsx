@@ -177,11 +177,10 @@ export default function AdminPage() {
         }
 
         if (!response.ok) {
-          console.error("Cloudinary upload error:", data);
-          alert("Image upload failed");
-          return;
-        }
-
+  console.error("Cloudinary upload error:", data);
+  alert("Cloudinary error: " + (data?.error?.message || JSON.stringify(data)));
+  return;
+}
         uploadedUrls.push(data.secure_url);
       }
 
