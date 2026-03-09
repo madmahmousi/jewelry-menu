@@ -44,12 +44,17 @@ export default function AdminPage() {
     const q = productSearch.trim().toLowerCase();
     if (!q) return products;
 
-    return products.filter(
-      (product) =>
-        product.name.toLowerCase().includes(q) ||
-        product.barcode.toLowerCase().includes(q) ||
-        product.category.toLowerCase().includes(q)
-    );
+    return products.filter((product) => {
+      const name = product.name?.toLowerCase() || "";
+      const barcode = product.barcode?.toLowerCase() || "";
+      const category = product.category?.toLowerCase() || "";
+
+      return (
+        name.includes(q) ||
+        barcode.includes(q) ||
+        category.includes(q)
+      );
+    });
   }, [products, productSearch]);
 
   function resetProductForm() {
@@ -107,6 +112,7 @@ export default function AdminPage() {
       !productCategory.trim() ||
       !productBarcode.trim()
     ) {
+      alert("Please fill all fields, including barcode.");
       return;
     }
 
@@ -173,6 +179,7 @@ export default function AdminPage() {
           ? [product.image]
           : []
     );
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 

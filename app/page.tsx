@@ -23,10 +23,11 @@ export default function Home() {
       const matchCategory =
         activeCategory === "All" || product.category === activeCategory;
 
+      const name = product.name?.toLowerCase() || "";
+      const barcode = product.barcode?.toLowerCase() || "";
+
       const matchSearch =
-        !q ||
-        product.name.toLowerCase().includes(q) ||
-        product.barcode.toLowerCase().includes(q);
+        !q || name.includes(q) || barcode.includes(q);
 
       return matchCategory && matchSearch;
     });
@@ -108,6 +109,7 @@ export default function Home() {
             <p className="mt-2 text-gray-400">{product.description}</p>
 
             <div className="mt-2 text-yellow-400">{product.category}</div>
+
             <div className="mt-1 text-sm text-cyan-400">
               Barcode: {product.barcode}
             </div>
