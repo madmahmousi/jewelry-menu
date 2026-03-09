@@ -10,6 +10,7 @@ export type Product = {
   category: string;
   image: string;
   images?: string[];
+  barcode: string;
 };
 
 const CATEGORY_KEY = "jewelry_categories";

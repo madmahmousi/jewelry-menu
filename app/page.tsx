@@ -9,6 +9,7 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     setCategories(getCategories());
@@ -16,22 +17,42 @@ export default function Home() {
   }, []);
 
   const filteredProducts = useMemo(() => {
-    if (activeCategory === "All") return products;
-    return products.filter((product) => product.category === activeCategory);
-  }, [products, activeCategory]);
+    const q = searchTerm.trim().toLowerCase();
+
+    return products.filter((product) => {
+      const matchCategory =
+        activeCategory === "All" || product.category === activeCategory;
+
+      const matchSearch =
+        !q ||
+        product.name.toLowerCase().includes(q) ||
+        product.barcode.toLowerCase().includes(q);
+
+      return matchCategory && matchSearch;
+    });
+  }, [products, activeCategory, searchTerm]);
 
   const gallery =
     selectedProduct?.images && selectedProduct.images.length > 0
       ? selectedProduct.images
       : selectedProduct?.image
-      ? [selectedProduct.image]
-      : [];
+        ? [selectedProduct.image]
+        : [];
 
   return (
     <main className="min-h-screen bg-black p-8 text-white">
-      <h1 className="mb-10 text-4xl font-bold text-yellow-400">
-        Jewelry Collection
-      </h1>
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <h1 className="text-4xl font-bold text-yellow-400">
+          Jewelry Collection
+        </h1>
+
+        <input
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search by name or barcode"
+          className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 px-5 py-3 outline-none"
+        />
+      </div>
 
       <div className="mb-10 flex flex-wrap gap-3">
         <button
@@ -87,9 +108,18 @@ export default function Home() {
             <p className="mt-2 text-gray-400">{product.description}</p>
 
             <div className="mt-2 text-yellow-400">{product.category}</div>
+            <div className="mt-1 text-sm text-cyan-400">
+              Barcode: {product.barcode}
+            </div>
           </button>
         ))}
       </div>
+
+      {filteredProducts.length === 0 && (
+        <div className="mt-10 rounded-3xl border border-zinc-800 bg-zinc-950 p-8 text-center text-gray-400">
+          No matching products found
+        </div>
+      )}
 
       {selectedProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4">
@@ -145,8 +175,12 @@ export default function Home() {
                 {selectedProduct.description}
               </p>
 
-              <div className="inline-block w-fit rounded-full border border-yellow-500/30 bg-yellow-500/10 px-5 py-2 text-sm text-yellow-300">
+              <div className="mb-4 inline-block w-fit rounded-full border border-yellow-500/30 bg-yellow-500/10 px-5 py-2 text-sm text-yellow-300">
                 {selectedProduct.category}
+              </div>
+
+              <div className="text-base text-cyan-400">
+                Barcode: {selectedProduct.barcode}
               </div>
             </div>
           </div>
