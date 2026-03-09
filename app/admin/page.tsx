@@ -144,7 +144,7 @@ export default function AdminPage() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // این دو مقدار را با مقادیر Cloudinary خودت جایگزین کن
+    // این دو مقدار را با مقادیر واقعی Cloudinary خودت عوض کن
     const cloudName = "dsbmiysgs";
     const uploadPreset = "jewelry_unsigned";
 
@@ -177,10 +177,14 @@ export default function AdminPage() {
         }
 
         if (!response.ok) {
-  console.error("Cloudinary upload error:", data);
-  alert("Cloudinary error: " + (data?.error?.message || JSON.stringify(data)));
-  return;
-}
+          console.error("Cloudinary upload error:", data);
+          alert(
+            "Cloudinary error: " +
+              (data?.error?.message || data?.message || JSON.stringify(data))
+          );
+          return;
+        }
+
         uploadedUrls.push(data.secure_url);
       }
 
