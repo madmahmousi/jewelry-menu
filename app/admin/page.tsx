@@ -130,8 +130,8 @@ export default function AdminPage() {
       product.images && product.images.length > 0
         ? product.images
         : product.image
-        ? [product.image]
-        : []
+          ? [product.image]
+          : []
     );
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -144,13 +144,9 @@ export default function AdminPage() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-
-    if (!cloudName || !uploadPreset) {
-      alert("Cloudinary env variables are missing");
-      return;
-    }
+    // این دو مقدار را با مقادیر Cloudinary خودت جایگزین کن
+    const cloudName = "dsbmiysgs";
+    const uploadPreset = "jewelry_unsigned";
 
     try {
       setUploading(true);
@@ -170,11 +166,19 @@ export default function AdminPage() {
           }
         );
 
-        const data = await response.json();
+        const text = await response.text();
+        console.log("Cloudinary raw response:", text);
+
+        let data: any = {};
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { raw: text };
+        }
 
         if (!response.ok) {
           console.error("Cloudinary upload error:", data);
-          alert("One of the images failed to upload");
+          alert("Image upload failed");
           return;
         }
 
@@ -327,8 +331,8 @@ export default function AdminPage() {
                 product.images && product.images.length > 0
                   ? product.images
                   : product.image
-                  ? [product.image]
-                  : [];
+                    ? [product.image]
+                    : [];
 
               return (
                 <div
