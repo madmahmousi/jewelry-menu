@@ -11,7 +11,12 @@ import {
   Product,
 } from "../../lib/storage";
 
+const ADMIN_PASSWORD = "8569";
+
 export default function AdminPage() {
+  const [authenticated, setAuthenticated] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+
   const [category, setCategory] = useState<string>("");
   const [productName, setProductName] = useState<string>("");
   const [productDesc, setProductDesc] = useState<string>("");
@@ -24,6 +29,11 @@ export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
+    const auth = localStorage.getItem("admin-auth");
+    if (auth === "true") {
+      setAuthenticated(true);
+    }
+
     setCategories(getCategories());
     setProducts(getProducts());
   }, []);
@@ -34,6 +44,12 @@ export default function AdminPage() {
     setProductCategory("");
     setProductImages([]);
     setEditingProductId(null);
+  }
+
+  function handleLogout() {
+    localStorage.removeItem("admin-auth");
+    setAuthenticated(false);
+    setPasswordInput("");
   }
 
   function handleAddCategory() {
@@ -155,8 +171,9 @@ export default function AdminPage() {
 
       for (const originalFile of Array.from(files)) {
         const compressedFile = await imageCompression(originalFile, {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 1600,
+          maxSizeMB: 0.8,
+          maxWidthOrHeight: 1200,
+          initialQuality: 0.7,
           useWebWorker: true,
         });
 
@@ -203,12 +220,53 @@ export default function AdminPage() {
     }
   }
 
+  if (!authenticated) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-black text-white">
+        <div className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-950 p-8 shadow-2xl">
+          <h2 className="mb-6 text-2xl font-bold text-yellow-400">
+            Admin Login
+          </h2>
+
+          <input
+            type="password"
+            placeholder="Enter password"
+            value={passwordInput}
+            onChange={(e) => setPasswordInput(e.target.value)}
+            className="mb-4 w-full rounded-lg bg-zinc-800 p-3 outline-none"
+          />
+
+          <button
+            onClick={() => {
+              if (passwordInput === ADMIN_PASSWORD) {
+                localStorage.setItem("admin-auth", "true");
+                setAuthenticated(true);
+              } else {
+                alert("Wrong password");
+              }
+            }}
+            className="w-full rounded-lg bg-yellow-500 p-3 font-semibold text-black"
+          >
+            Login
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-black p-6 text-white md:p-8">
       <div className="mx-auto max-w-4xl">
-        <h1 className="mb-6 text-4xl font-bold text-yellow-400">
-          Admin Panel
-        </h1>
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <h1 className="text-4xl font-bold text-yellow-400">Admin Panel</h1>
+
+          <button
+            onClick={handleLogout}
+            className="rounded-lg bg-red-500 px-4 py-2 text-sm text-white"
+          >
+            Logout
+          </button>
+        </div>
 
         <div className="mb-10 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
           <h2 className="mb-4 text-xl font-semibold">Add Category</h2>
