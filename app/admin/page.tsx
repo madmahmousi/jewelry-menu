@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import imageCompression from "browser-image-compression";
 import {
   getCategories,
@@ -17,13 +17,15 @@ export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
 
-  const [category, setCategory] = useState<string>("");
-  const [productName, setProductName] = useState<string>("");
-  const [productDesc, setProductDesc] = useState<string>("");
-  const [productCategory, setProductCategory] = useState<string>("");
+  const [category, setCategory] = useState("");
+  const [productName, setProductName] = useState("");
+  const [productDesc, setProductDesc] = useState("");
+  const [productCategory, setProductCategory] = useState("");
+  const [productBarcode, setProductBarcode] = useState("");
   const [productImages, setProductImages] = useState<string[]>([]);
-  const [uploading, setUploading] = useState<boolean>(false);
+  const [uploading, setUploading] = useState(false);
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
+  const [productSearch, setProductSearch] = useState("");
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -38,10 +40,23 @@ export default function AdminPage() {
     setProducts(getProducts());
   }, []);
 
+  const filteredProducts = useMemo(() => {
+    const q = productSearch.trim().toLowerCase();
+    if (!q) return products;
+
+    return products.filter(
+      (product) =>
+        product.name.toLowerCase().includes(q) ||
+        product.barcode.toLowerCase().includes(q) ||
+        product.category.toLowerCase().includes(q)
+    );
+  }, [products, productSearch]);
+
   function resetProductForm() {
     setProductName("");
     setProductDesc("");
     setProductCategory("");
+    setProductBarcode("");
     setProductImages([]);
     setEditingProductId(null);
   }
@@ -86,7 +101,12 @@ export default function AdminPage() {
   }
 
   function handleSaveProduct() {
-    if (!productName.trim() || !productDesc.trim() || !productCategory.trim()) {
+    if (
+      !productName.trim() ||
+      !productDesc.trim() ||
+      !productCategory.trim() ||
+      !productBarcode.trim()
+    ) {
       return;
     }
 
@@ -101,6 +121,7 @@ export default function AdminPage() {
               name: productName,
               description: productDesc,
               category: productCategory,
+              barcode: productBarcode,
               image: mainImage,
               images: productImages,
             }
@@ -118,6 +139,7 @@ export default function AdminPage() {
       name: productName,
       description: productDesc,
       category: productCategory,
+      barcode: productBarcode,
       image: mainImage,
       images: productImages,
     };
@@ -143,6 +165,7 @@ export default function AdminPage() {
     setProductName(product.name);
     setProductDesc(product.description);
     setProductCategory(product.category);
+    setProductBarcode(product.barcode || "");
     setProductImages(
       product.images && product.images.length > 0
         ? product.images
@@ -189,17 +212,9 @@ export default function AdminPage() {
           }
         );
 
-        const text = await response.text();
-
-        let data: any = {};
-        try {
-          data = JSON.parse(text);
-        } catch {
-          data = { raw: text };
-        }
+        const data = await response.json();
 
         if (!response.ok) {
-          console.error("Cloudinary upload error:", data);
           alert(
             "Cloudinary error: " +
               (data?.error?.message || data?.message || JSON.stringify(data))
@@ -212,7 +227,7 @@ export default function AdminPage() {
 
       setProductImages((prev) => [...prev, ...uploadedUrls]);
     } catch (error) {
-      console.error("Unexpected upload error:", error);
+      console.error(error);
       alert("Unexpected upload error");
     } finally {
       setUploading(false);
@@ -256,7 +271,7 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen bg-black p-6 text-white md:p-8">
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-7xl">
         <div className="mb-6 flex items-center justify-between gap-3">
           <h1 className="text-4xl font-bold text-yellow-400">Admin Panel</h1>
 
@@ -268,186 +283,217 @@ export default function AdminPage() {
           </button>
         </div>
 
-        <div className="mb-10 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-          <h2 className="mb-4 text-xl font-semibold">Add Category</h2>
+        <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="space-y-6">
+            <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
+              <h2 className="mb-4 text-xl font-semibold">Category Management</h2>
 
-          <input
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            placeholder="Category name"
-            className="mb-4 w-full rounded-xl bg-zinc-900 p-3"
-          />
+              <input
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="Category name"
+                className="mb-4 w-full rounded-xl bg-zinc-900 p-3"
+              />
 
-          <button
-            onClick={handleAddCategory}
-            className="rounded-xl bg-yellow-500 px-6 py-2 text-black"
-          >
-            Add Category
-          </button>
-
-          <div className="mt-6 space-y-2">
-            {categories.map((cat) => (
-              <div
-                key={cat.id}
-                className="rounded-xl border border-zinc-800 bg-zinc-900 p-3"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span>{cat.name}</span>
-
-                  <button
-                    onClick={() => handleDeleteCategory(cat.id)}
-                    className="rounded-lg bg-red-500 px-4 py-2 text-sm text-white"
-                  >
-                    Delete Category
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-xl font-semibold">
-              {editingProductId ? "Edit Product" : "Add Product"}
-            </h2>
-
-            {editingProductId ? (
               <button
-                onClick={resetProductForm}
-                className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-white"
+                onClick={handleAddCategory}
+                className="rounded-xl bg-yellow-500 px-6 py-2 text-black"
               >
-                Cancel Edit
+                Add Category
               </button>
-            ) : null}
+
+              <div className="mt-6 space-y-2">
+                {categories.map((cat) => (
+                  <div
+                    key={cat.id}
+                    className="rounded-xl border border-zinc-800 bg-zinc-900 p-3"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span>{cat.name}</span>
+
+                      <button
+                        onClick={() => handleDeleteCategory(cat.id)}
+                        className="rounded-lg bg-red-500 px-4 py-2 text-sm text-white"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="text-xl font-semibold">
+                  {editingProductId ? "Edit Product" : "Add Product"}
+                </h2>
+
+                {editingProductId ? (
+                  <button
+                    onClick={resetProductForm}
+                    className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-white"
+                  >
+                    Cancel Edit
+                  </button>
+                ) : null}
+              </div>
+
+              <input
+                value={productName}
+                onChange={(e) => setProductName(e.target.value)}
+                placeholder="Product name"
+                className="mb-4 w-full rounded-xl bg-zinc-900 p-3"
+              />
+
+              <textarea
+                value={productDesc}
+                onChange={(e) => setProductDesc(e.target.value)}
+                placeholder="Product description"
+                className="mb-4 w-full rounded-xl bg-zinc-900 p-3"
+              />
+
+              <input
+                value={productBarcode}
+                onChange={(e) => setProductBarcode(e.target.value)}
+                placeholder="Barcode"
+                className="mb-4 w-full rounded-xl bg-zinc-900 p-3"
+              />
+
+              <select
+                value={productCategory}
+                onChange={(e) => setProductCategory(e.target.value)}
+                className="mb-4 w-full rounded-xl bg-zinc-900 p-3"
+              >
+                <option value="">Select category</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.name}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageUpload}
+                className="mb-4 w-full rounded-xl bg-zinc-900 p-3"
+              />
+
+              {uploading && (
+                <p className="mb-4 text-sm text-yellow-400">Uploading images...</p>
+              )}
+
+              {productImages.length > 0 && (
+                <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+                  {productImages.map((img, index) => (
+                    <div
+                      key={img + index}
+                      className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900"
+                    >
+                      <img
+                        src={img}
+                        alt={`Preview ${index + 1}`}
+                        className="h-40 w-full object-cover"
+                      />
+                      <button
+                        onClick={() => handleRemovePreviewImage(index)}
+                        className="w-full bg-red-500 px-3 py-2 text-sm text-white"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <button
+                onClick={handleSaveProduct}
+                className="rounded-xl bg-yellow-500 px-6 py-2 text-black"
+              >
+                {editingProductId ? "Update Product" : "Add Product"}
+              </button>
+            </div>
           </div>
 
-          <input
-            value={productName}
-            onChange={(e) => setProductName(e.target.value)}
-            placeholder="Product name"
-            className="mb-4 w-full rounded-xl bg-zinc-900 p-3"
-          />
+          <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="text-xl font-semibold">Products</h2>
 
-          <textarea
-            value={productDesc}
-            onChange={(e) => setProductDesc(e.target.value)}
-            placeholder="Product description"
-            className="mb-4 w-full rounded-xl bg-zinc-900 p-3"
-          />
-
-          <select
-            value={productCategory}
-            onChange={(e) => setProductCategory(e.target.value)}
-            className="mb-4 w-full rounded-xl bg-zinc-900 p-3"
-          >
-            <option value="">Select category</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.name}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleImageUpload}
-            className="mb-4 w-full rounded-xl bg-zinc-900 p-3"
-          />
-
-          {uploading && (
-            <p className="mb-4 text-sm text-yellow-400">Uploading images...</p>
-          )}
-
-          {productImages.length > 0 && (
-            <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-              {productImages.map((img, index) => (
-                <div
-                  key={img + index}
-                  className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900"
-                >
-                  <img
-                    src={img}
-                    alt={`Preview ${index + 1}`}
-                    className="h-40 w-full object-cover"
-                  />
-                  <button
-                    onClick={() => handleRemovePreviewImage(index)}
-                    className="w-full bg-red-500 px-3 py-2 text-sm text-white"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
+              <input
+                value={productSearch}
+                onChange={(e) => setProductSearch(e.target.value)}
+                placeholder="Search by name / barcode / category"
+                className="w-full max-w-sm rounded-xl bg-zinc-900 p-3"
+              />
             </div>
-          )}
 
-          <button
-            onClick={handleSaveProduct}
-            className="rounded-xl bg-yellow-500 px-6 py-2 text-black"
-          >
-            {editingProductId ? "Update Product" : "Add Product"}
-          </button>
+            <div className="space-y-3">
+              {filteredProducts.map((product) => {
+                const gallery =
+                  product.images && product.images.length > 0
+                    ? product.images
+                    : product.image
+                      ? [product.image]
+                      : [];
 
-          <div className="mt-6 space-y-2">
-            {products.map((product) => {
-              const gallery =
-                product.images && product.images.length > 0
-                  ? product.images
-                  : product.image
-                    ? [product.image]
-                    : [];
+                return (
+                  <div
+                    key={product.id}
+                    className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"
+                  >
+                    <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+                      {gallery.map((img, index) => (
+                        <div
+                          key={img + index}
+                          className="overflow-hidden rounded-xl"
+                        >
+                          <img
+                            src={img}
+                            alt={`${product.name} ${index + 1}`}
+                            className="h-28 w-full object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
 
-              return (
-                <div
-                  key={product.id}
-                  className="rounded-xl border border-zinc-800 bg-zinc-900 p-3"
-                >
-                  <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-4">
-                    {gallery.map((img, index) => (
-                      <div
-                        key={img + index}
-                        className="overflow-hidden rounded-xl"
+                    <div className="font-semibold">{product.name}</div>
+                    <div className="mt-1 text-sm text-gray-400">
+                      {product.description}
+                    </div>
+                    <div className="mt-1 text-sm text-yellow-400">
+                      {product.category}
+                    </div>
+                    <div className="mt-1 text-sm text-cyan-400">
+                      Barcode: {product.barcode}
+                    </div>
+
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        onClick={() => handleEditProduct(product)}
+                        className="rounded-lg bg-blue-500 px-4 py-2 text-sm text-white"
                       >
-                        <img
-                          src={img}
-                          alt={`${product.name} ${index + 1}`}
-                          className="h-28 w-full object-cover"
-                        />
-                      </div>
-                    ))}
+                        Edit Product
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteProduct(product.id)}
+                        className="rounded-lg bg-red-500 px-4 py-2 text-sm text-white"
+                      >
+                        Delete Product
+                      </button>
+                    </div>
                   </div>
+                );
+              })}
 
-                  <div className="font-semibold">{product.name}</div>
-
-                  <div className="text-sm text-gray-400">
-                    {product.description}
-                  </div>
-
-                  <div className="text-sm text-yellow-400">
-                    {product.category}
-                  </div>
-
-                  <div className="mt-3 flex gap-2">
-                    <button
-                      onClick={() => handleEditProduct(product)}
-                      className="rounded-lg bg-blue-500 px-4 py-2 text-sm text-white"
-                    >
-                      Edit Product
-                    </button>
-
-                    <button
-                      onClick={() => handleDeleteProduct(product.id)}
-                      className="rounded-lg bg-red-500 px-4 py-2 text-sm text-white"
-                    >
-                      Delete Product
-                    </button>
-                  </div>
+              {filteredProducts.length === 0 && (
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6 text-center text-gray-400">
+                  No products found
                 </div>
-              );
-            })}
+              )}
+            </div>
           </div>
         </div>
       </div>
