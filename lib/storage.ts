@@ -3,6 +3,8 @@ export type Category = {
   name: string;
 };
 
+export type ProductStatus = "available" | "reserved" | "sold";
+
 export type Product = {
   id: number;
   name: string;
@@ -11,10 +13,32 @@ export type Product = {
   image: string;
   images?: string[];
   barcode: string;
+  status: ProductStatus;
+  order: number;
 };
 
 const CATEGORY_KEY = "jewelry_categories";
 const PRODUCT_KEY = "jewelry_products";
+
+function normalizeProducts(rawProducts: any[]): Product[] {
+  return rawProducts.map((product, index) => ({
+    id: product.id ?? Date.now() + index,
+    name: product.name ?? "",
+    description: product.description ?? "",
+    category: product.category ?? "",
+    image:
+      product.image || "https://via.placeholder.com/600x1066?text=Jewelry",
+    images:
+      Array.isArray(product.images) && product.images.length > 0
+        ? product.images
+        : product.image
+          ? [product.image]
+          : [],
+    barcode: product.barcode ?? "",
+    status: product.status ?? "available",
+    order: typeof product.order === "number" ? product.order : index,
+  }));
+}
 
 export function getCategories(): Category[] {
   if (typeof window === "undefined") return [];
@@ -29,7 +53,9 @@ export function saveCategories(categories: Category[]) {
 export function getProducts(): Product[] {
   if (typeof window === "undefined") return [];
   const data = localStorage.getItem(PRODUCT_KEY);
-  return data ? JSON.parse(data) : [];
+  if (!data) return [];
+  const parsed = JSON.parse(data);
+  return normalizeProducts(parsed);
 }
 
 export function saveProducts(products: Product[]) {

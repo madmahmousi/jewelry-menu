@@ -9,9 +9,16 @@ import {
   saveProducts,
   Category,
   Product,
+  ProductStatus,
 } from "../../lib/storage";
 
 const ADMIN_PASSWORD = "8569";
+
+const statusOptions: { value: ProductStatus; label: string }[] = [
+  { value: "available", label: "Available" },
+  { value: "reserved", label: "Reserved" },
+  { value: "sold", label: "Sold" },
+];
 
 export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState(false);
@@ -22,6 +29,7 @@ export default function AdminPage() {
   const [productDesc, setProductDesc] = useState("");
   const [productCategory, setProductCategory] = useState("");
   const [productBarcode, setProductBarcode] = useState("");
+  const [productStatus, setProductStatus] = useState<ProductStatus>("available");
   const [productImages, setProductImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
@@ -42,28 +50,44 @@ export default function AdminPage() {
     setProducts(getProducts());
   }, []);
 
+  const sortedProducts = useMemo(() => {
+    return [...products].sort((a, b) => a.order - b.order);
+  }, [products]);
+
   const filteredProducts = useMemo(() => {
     const q = productSearch.trim().toLowerCase();
-    if (!q) return products;
+    if (!q) return sortedProducts;
 
-    return products.filter((product) => {
+    return sortedProducts.filter((product) => {
       const name = product.name?.toLowerCase() || "";
       const barcode = product.barcode?.toLowerCase() || "";
       const category = product.category?.toLowerCase() || "";
+      const status = product.status?.toLowerCase() || "";
 
       return (
         name.includes(q) ||
         barcode.includes(q) ||
-        category.includes(q)
+        category.includes(q) ||
+        status.includes(q)
       );
     });
-  }, [products, productSearch]);
+  }, [sortedProducts, productSearch]);
+
+  const stats = useMemo(() => {
+    return {
+      totalProducts: products.length,
+      totalCategories: categories.length,
+      available: products.filter((p) => p.status === "available").length,
+      sold: products.filter((p) => p.status === "sold").length,
+    };
+  }, [products, categories]);
 
   function resetProductForm() {
     setProductName("");
     setProductDesc("");
     setProductCategory("");
     setProductBarcode("");
+    setProductStatus("available");
     setProductImages([]);
     setEditingProductId(null);
   }
@@ -79,7 +103,7 @@ export default function AdminPage() {
 
     const newCategory: Category = {
       id: Date.now(),
-      name: category,
+      name: category.trim(),
     };
 
     const updatedCategories = [...categories, newCategory];
@@ -126,10 +150,11 @@ export default function AdminPage() {
         product.id === editingProductId
           ? {
               ...product,
-              name: productName,
-              description: productDesc,
+              name: productName.trim(),
+              description: productDesc.trim(),
               category: productCategory,
-              barcode: productBarcode,
+              barcode: productBarcode.trim(),
+              status: productStatus,
               image: mainImage,
               images: productImages,
             }
@@ -142,14 +167,19 @@ export default function AdminPage() {
       return;
     }
 
+    const maxOrder =
+      products.length > 0 ? Math.max(...products.map((p) => p.order)) : -1;
+
     const newProduct: Product = {
       id: Date.now(),
-      name: productName,
-      description: productDesc,
+      name: productName.trim(),
+      description: productDesc.trim(),
       category: productCategory,
-      barcode: productBarcode,
+      barcode: productBarcode.trim(),
+      status: productStatus,
       image: mainImage,
       images: productImages,
+      order: maxOrder + 1,
     };
 
     const updatedProducts = [...products, newProduct];
@@ -174,6 +204,7 @@ export default function AdminPage() {
     setProductDesc(product.description);
     setProductCategory(product.category);
     setProductBarcode(product.barcode || "");
+    setProductStatus(product.status || "available");
     setProductImages(
       product.images && product.images.length > 0
         ? product.images
@@ -181,12 +212,33 @@ export default function AdminPage() {
           ? [product.image]
           : []
     );
-
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function handleRemovePreviewImage(index: number) {
     setProductImages((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function moveProduct(productId: number, direction: "up" | "down") {
+    const ordered = [...products].sort((a, b) => a.order - b.order);
+    const currentIndex = ordered.findIndex((p) => p.id === productId);
+    if (currentIndex === -1) return;
+
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= ordered.length) return;
+
+    [ordered[currentIndex], ordered[targetIndex]] = [
+      ordered[targetIndex],
+      ordered[currentIndex],
+    ];
+
+    const reOrdered = ordered.map((product, index) => ({
+      ...product,
+      order: index,
+    }));
+
+    setProducts(reOrdered);
+    saveProducts(reOrdered);
   }
 
   async function handleImageUpload(e: ChangeEvent<HTMLInputElement>) {
@@ -303,6 +355,16 @@ export default function AdminPage() {
     reader.readAsText(file);
   }
 
+  function statusBadge(status: ProductStatus) {
+    if (status === "available") {
+      return "bg-emerald-500/15 text-emerald-300 border-emerald-500/30";
+    }
+    if (status === "reserved") {
+      return "bg-amber-500/15 text-amber-300 border-amber-500/30";
+    }
+    return "bg-red-500/15 text-red-300 border-red-500/30";
+  }
+
   if (!authenticated) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-black text-white">
@@ -372,6 +434,36 @@ export default function AdminPage() {
               onChange={handleImportData}
               className="hidden"
             />
+          </div>
+        </div>
+
+        <div className="mb-6 grid gap-4 md:grid-cols-4">
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
+            <div className="text-sm text-zinc-400">Products</div>
+            <div className="mt-2 text-3xl font-bold text-yellow-400">
+              {stats.totalProducts}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
+            <div className="text-sm text-zinc-400">Categories</div>
+            <div className="mt-2 text-3xl font-bold text-yellow-400">
+              {stats.totalCategories}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
+            <div className="text-sm text-zinc-400">Available</div>
+            <div className="mt-2 text-3xl font-bold text-emerald-400">
+              {stats.available}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
+            <div className="text-sm text-zinc-400">Sold</div>
+            <div className="mt-2 text-3xl font-bold text-red-400">
+              {stats.sold}
+            </div>
           </div>
         </div>
 
@@ -465,6 +557,18 @@ export default function AdminPage() {
                 ))}
               </select>
 
+              <select
+                value={productStatus}
+                onChange={(e) => setProductStatus(e.target.value as ProductStatus)}
+                className="mb-4 w-full rounded-xl bg-zinc-900 p-3"
+              >
+                {statusOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
               <input
                 type="file"
                 accept="image/*"
@@ -550,7 +654,17 @@ export default function AdminPage() {
                       ))}
                     </div>
 
-                    <div className="font-semibold">{product.name}</div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="font-semibold">{product.name}</div>
+                      <div
+                        className={`rounded-full border px-3 py-1 text-xs ${statusBadge(
+                          product.status
+                        )}`}
+                      >
+                        {product.status}
+                      </div>
+                    </div>
+
                     <div className="mt-1 text-sm text-gray-400">
                       {product.description}
                     </div>
@@ -561,7 +675,21 @@ export default function AdminPage() {
                       Barcode: {product.barcode}
                     </div>
 
-                    <div className="mt-3 flex gap-2">
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        onClick={() => moveProduct(product.id, "up")}
+                        className="rounded-lg bg-zinc-700 px-4 py-2 text-sm text-white"
+                      >
+                        Move Up
+                      </button>
+
+                      <button
+                        onClick={() => moveProduct(product.id, "down")}
+                        className="rounded-lg bg-zinc-700 px-4 py-2 text-sm text-white"
+                      >
+                        Move Down
+                      </button>
+
                       <button
                         onClick={() => handleEditProduct(product)}
                         className="rounded-lg bg-blue-500 px-4 py-2 text-sm text-white"
