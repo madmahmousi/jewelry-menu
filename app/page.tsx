@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   getCategories,
   getProducts,
@@ -26,6 +26,9 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("gallery");
   const [storyIndex, setStoryIndex] = useState(0);
+
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
 
   useEffect(() => {
     setCategories(getCategories());
@@ -106,21 +109,43 @@ export default function Home() {
     );
   }
 
+  function onTouchStart(e: React.TouchEvent) {
+    touchEndX.current = null;
+    touchStartX.current = e.targetTouches[0].clientX;
+  }
+
+  function onTouchMove(e: React.TouchEvent) {
+    touchEndX.current = e.targetTouches[0].clientX;
+  }
+
+  function onTouchEnd() {
+    if (touchStartX.current === null || touchEndX.current === null) return;
+
+    const distance = touchStartX.current - touchEndX.current;
+    const minSwipeDistance = 50;
+
+    if (distance > minSwipeDistance) {
+      nextStory();
+    } else if (distance < -minSwipeDistance) {
+      prevStory();
+    }
+  }
+
   return (
     <main className="min-h-screen bg-black text-white">
-      <div className="mx-auto max-w-[1600px] px-3 py-3 sm:px-5 sm:py-5 lg:px-6">
-        <div className="mb-4 rounded-[28px] border border-zinc-800 bg-zinc-950 p-4 sm:p-5 lg:p-6">
+      <div className="mx-auto max-w-[1700px] px-3 py-3 sm:px-5 sm:py-5 lg:px-6">
+        <div className="mb-4 rounded-[32px] border border-zinc-800 bg-zinc-950 p-4 sm:p-5 lg:p-6 xl:p-8">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
-              <div className="mb-2 text-[10px] uppercase tracking-[0.28em] text-yellow-500/70 sm:text-xs">
+              <div className="mb-2 text-[10px] uppercase tracking-[0.32em] text-yellow-500/70 sm:text-xs">
                 Luxury Showroom
               </div>
               <h1 className="text-2xl font-bold text-yellow-400 sm:text-3xl xl:text-5xl">
                 Jewelry Collection
               </h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400 sm:text-base">
-                Browse your collection in a professional iPad-friendly layout,
-                search by barcode, and switch to story-style viewing.
+                Browse your collection in a premium iPad-friendly layout and
+                switch between gallery mode and story mode.
               </p>
             </div>
 
@@ -144,7 +169,7 @@ export default function Home() {
                       : "text-white"
                   }`}
                 >
-                  Gallery View
+                  Gallery
                 </button>
                 <button
                   onClick={() => {
@@ -157,7 +182,7 @@ export default function Home() {
                       : "text-white"
                   }`}
                 >
-                  Story Mode
+                  Story
                 </button>
               </div>
             </div>
@@ -198,7 +223,7 @@ export default function Home() {
         </div>
 
         {viewMode === "gallery" ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-3">
             {filteredProducts.map((product) => {
               const isSold = product.status === "sold";
 
@@ -209,13 +234,13 @@ export default function Home() {
                     setSelectedProduct(product);
                     setActiveImageIndex(0);
                   }}
-                  className={`overflow-hidden rounded-3xl border bg-zinc-950 p-4 text-left transition ${
+                  className={`overflow-hidden rounded-[30px] border bg-zinc-950 p-4 text-left transition lg:p-5 ${
                     isSold
                       ? "border-zinc-800 opacity-70 hover:border-zinc-700"
                       : "border-zinc-800 hover:border-yellow-500"
                   }`}
                 >
-                  <div className="mx-auto aspect-[9/16] w-full max-w-[300px] overflow-hidden rounded-2xl">
+                  <div className="mx-auto aspect-[9/16] w-full max-w-[360px] overflow-hidden rounded-[24px]">
                     <img
                       src={
                         (product.images && product.images[0]) ||
@@ -256,11 +281,16 @@ export default function Home() {
             })}
           </div>
         ) : (
-          <div className="rounded-[32px] border border-zinc-800 bg-zinc-950 p-3 sm:p-4 lg:p-5">
+          <div
+            className="rounded-[34px] border border-zinc-800 bg-zinc-950 p-3 sm:p-4 lg:p-5"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+          >
             {currentStoryProduct ? (
-              <div className="grid min-h-[78vh] gap-4 xl:grid-cols-[420px_minmax(0,1fr)] 2xl:grid-cols-[460px_minmax(0,1fr)]">
-                <div className="flex items-center justify-center rounded-[28px] bg-black p-4">
-                  <div className="relative aspect-[9/16] w-full max-w-[320px] overflow-hidden rounded-[24px] border border-zinc-800 md:max-w-[340px] xl:max-w-[380px]">
+              <div className="grid min-h-[82vh] gap-4 xl:grid-cols-[480px_minmax(0,1fr)]">
+                <div className="flex items-center justify-center rounded-[30px] bg-black p-4">
+                  <div className="relative aspect-[9/16] w-full max-w-[420px] overflow-hidden rounded-[28px] border border-zinc-800">
                     <img
                       src={
                         currentStoryGallery[0] ||
@@ -285,10 +315,10 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="flex min-h-0 flex-col rounded-[28px] bg-zinc-900/40 p-5 sm:p-6 xl:justify-between xl:p-8">
+                <div className="flex min-h-0 flex-col rounded-[30px] bg-zinc-900/40 p-5 sm:p-6 xl:justify-between xl:p-10">
                   <div>
                     <div className="mb-3 flex flex-wrap items-center gap-2">
-                      <h2 className="text-2xl font-bold text-yellow-400 sm:text-3xl xl:text-4xl">
+                      <h2 className="text-2xl font-bold text-yellow-400 sm:text-3xl xl:text-5xl">
                         {currentStoryProduct.name}
                       </h2>
                       <div
@@ -304,7 +334,7 @@ export default function Home() {
                       {currentStoryProduct.category}
                     </div>
 
-                    <p className="max-w-3xl text-sm leading-7 text-gray-300 sm:text-base sm:leading-8 xl:text-lg">
+                    <p className="max-w-3xl text-sm leading-7 text-gray-300 sm:text-base sm:leading-8 xl:text-xl">
                       {currentStoryProduct.description}
                     </p>
 
@@ -364,7 +394,7 @@ export default function Home() {
         {selectedProduct && (
           <div className="fixed inset-0 z-50 bg-black/90 p-3 sm:p-4">
             <div className="mx-auto flex h-full max-w-7xl items-center justify-center">
-              <div className="relative flex h-full max-h-[96vh] w-full flex-col overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950 shadow-2xl xl:grid xl:grid-cols-[430px_minmax(0,1fr)]">
+              <div className="relative flex h-full max-h-[96vh] w-full flex-col overflow-hidden rounded-[32px] border border-zinc-800 bg-zinc-950 shadow-2xl xl:grid xl:grid-cols-[460px_minmax(0,1fr)]">
                 <button
                   onClick={() => setSelectedProduct(null)}
                   className="absolute right-3 top-3 z-20 rounded-full bg-black/60 px-4 py-2 text-xs text-white backdrop-blur hover:bg-red-500 sm:right-4 sm:top-4 sm:text-sm"
@@ -373,7 +403,7 @@ export default function Home() {
                 </button>
 
                 <div className="flex w-full flex-col items-center bg-black px-4 pb-4 pt-14 sm:px-5 xl:justify-center xl:p-5">
-                  <div className="relative aspect-[9/16] w-full max-w-[260px] overflow-hidden rounded-2xl border border-zinc-800 sm:max-w-[300px] xl:max-w-[360px]">
+                  <div className="relative aspect-[9/16] w-full max-w-[380px] overflow-hidden rounded-[26px] border border-zinc-800">
                     <img
                       src={
                         gallery[activeImageIndex] ||
@@ -402,7 +432,7 @@ export default function Home() {
                   </div>
 
                   {gallery.length > 1 && (
-                    <div className="mt-4 grid w-full max-w-[260px] grid-cols-4 gap-2 sm:max-w-[300px] xl:max-w-[360px]">
+                    <div className="mt-4 grid w-full max-w-[380px] grid-cols-4 gap-2 sm:gap-3">
                       {gallery.map((img, index) => (
                         <button
                           key={img + index}
@@ -426,7 +456,7 @@ export default function Home() {
 
                 <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-5 sm:p-6 xl:justify-center xl:p-10">
                   <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <h2 className="text-2xl font-bold text-yellow-400 sm:text-3xl xl:text-4xl">
+                    <h2 className="text-2xl font-bold text-yellow-400 sm:text-3xl xl:text-5xl">
                       {selectedProduct.name}
                     </h2>
                     <div
@@ -438,7 +468,7 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <p className="mb-5 text-sm leading-7 text-gray-300 sm:text-base sm:leading-8 xl:text-lg">
+                  <p className="mb-5 text-sm leading-7 text-gray-300 sm:text-base sm:leading-8 xl:text-xl">
                     {selectedProduct.description}
                   </p>
 
