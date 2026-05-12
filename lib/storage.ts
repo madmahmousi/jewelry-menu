@@ -4,6 +4,7 @@ export type Category = {
 };
 
 export type ProductStatus = "available" | "reserved" | "sold";
+export type SortMode = "mix" | "weight" | "barcode";
 
 export type Product = {
   id: number;
@@ -13,6 +14,7 @@ export type Product = {
   image: string;
   images?: string[];
   barcode: string;
+  weight: number;
   status: ProductStatus;
   order: number;
 };
@@ -35,6 +37,10 @@ function normalizeProducts(rawProducts: any[]): Product[] {
           ? [product.image]
           : [],
     barcode: product.barcode ?? "",
+    weight:
+      typeof product.weight === "number"
+        ? product.weight
+        : Number(product.weight ?? 0),
     status: product.status ?? "available",
     order: typeof product.order === "number" ? product.order : index,
   }));

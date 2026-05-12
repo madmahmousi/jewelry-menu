@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   getCategories,
   getProducts,
   Category,
   Product,
   ProductStatus,
+  SortMode,
 } from "../lib/storage";
 
 const statusLabel: Record<ProductStatus, string> = {
@@ -15,8 +16,6 @@ const statusLabel: Record<ProductStatus, string> = {
   sold: "Sold",
 };
 
-type ViewMode = "gallery" | "story";
-
 export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -24,57 +23,57 @@ export default function Home() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [viewMode, setViewMode] = useState<ViewMode>("gallery");
-  const [storyIndex, setStoryIndex] = useState(0);
-
-  const touchStartX = useRef<number | null>(null);
-  const touchEndX = useRef<number | null>(null);
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [sortMode, setSortMode] = useState<SortMode>("mix");
 
   useEffect(() => {
     setCategories(getCategories());
     setProducts(getProducts());
+
+    const savedTheme = localStorage.getItem("jewelry-theme");
+    if (savedTheme === "light" || savedTheme === "dark") {
+      setTheme(savedTheme);
+    }
   }, []);
 
-  const orderedProducts = useMemo(() => {
-    return [...products].sort((a, b) => a.order - b.order);
-  }, [products]);
+  useEffect(() => {
+    localStorage.setItem("jewelry-theme", theme);
+  }, [theme]);
 
   const filteredProducts = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
 
-    return orderedProducts.filter((product) => {
+    let result = products.filter((product) => {
       const matchCategory =
         activeCategory === "All" || product.category === activeCategory;
 
       const name = product.name?.toLowerCase() || "";
       const barcode = product.barcode?.toLowerCase() || "";
-      const matchSearch = !q || name.includes(q) || barcode.includes(q);
+      const weight = String(product.weight ?? "");
+      const matchSearch =
+        !q || name.includes(q) || barcode.includes(q) || weight.includes(q);
 
       return matchCategory && matchSearch;
     });
-  }, [orderedProducts, activeCategory, searchTerm]);
 
-  useEffect(() => {
-    if (storyIndex > filteredProducts.length - 1) {
-      setStoryIndex(0);
+    if (sortMode === "mix") {
+      result = [...result].sort((a, b) => a.order - b.order);
+    } else if (sortMode === "weight") {
+      result = [...result].sort((a, b) => a.weight - b.weight);
+    } else if (sortMode === "barcode") {
+      result = [...result].sort((a, b) =>
+        String(a.barcode).localeCompare(String(b.barcode))
+      );
     }
-  }, [filteredProducts, storyIndex]);
+
+    return result;
+  }, [products, activeCategory, searchTerm, sortMode]);
 
   const gallery =
     selectedProduct?.images && selectedProduct.images.length > 0
       ? selectedProduct.images
       : selectedProduct?.image
         ? [selectedProduct.image]
-        : [];
-
-  const currentStoryProduct =
-    filteredProducts.length > 0 ? filteredProducts[storyIndex] : null;
-
-  const currentStoryGallery =
-    currentStoryProduct?.images && currentStoryProduct.images.length > 0
-      ? currentStoryProduct.images
-      : currentStoryProduct?.image
-        ? [currentStoryProduct.image]
         : [];
 
   function statusBadge(status: ProductStatus) {
@@ -97,108 +96,101 @@ export default function Home() {
     setActiveImageIndex((prev) => (prev - 1 + gallery.length) % gallery.length);
   }
 
-  function nextStory() {
-    if (!filteredProducts.length) return;
-    setStoryIndex((prev) => (prev + 1) % filteredProducts.length);
-  }
-
-  function prevStory() {
-    if (!filteredProducts.length) return;
-    setStoryIndex(
-      (prev) => (prev - 1 + filteredProducts.length) % filteredProducts.length
-    );
-  }
-
-  function onTouchStart(e: React.TouchEvent) {
-    touchEndX.current = null;
-    touchStartX.current = e.targetTouches[0].clientX;
-  }
-
-  function onTouchMove(e: React.TouchEvent) {
-    touchEndX.current = e.targetTouches[0].clientX;
-  }
-
-  function onTouchEnd() {
-    if (touchStartX.current === null || touchEndX.current === null) return;
-
-    const distance = touchStartX.current - touchEndX.current;
-    const minSwipeDistance = 50;
-
-    if (distance > minSwipeDistance) {
-      nextStory();
-    } else if (distance < -minSwipeDistance) {
-      prevStory();
-    }
-  }
+  const isLight = theme === "light";
 
   return (
-    <main className="min-h-screen bg-black text-white">
-      <div className="mx-auto max-w-[1700px] px-3 py-3 sm:px-5 sm:py-5 lg:px-6">
-        <div className="mb-4 rounded-[32px] border border-zinc-800 bg-zinc-950 p-4 sm:p-5 lg:p-6 xl:p-8">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div>
-              <div className="mb-2 text-[10px] uppercase tracking-[0.32em] text-yellow-500/70 sm:text-xs">
-                Luxury Showroom
+    <main
+      className={`min-h-screen px-3 py-4 sm:px-5 sm:py-6 md:px-8 md:py-8 ${
+        isLight ? "bg-zinc-100 text-zinc-900" : "bg-black text-white"
+      }`}
+    >
+      <div className="mx-auto max-w-7xl">
+        <div
+          className={`mb-5 rounded-[24px] border p-4 sm:mb-6 sm:p-5 md:mb-8 md:p-8 ${
+            isLight
+              ? "border-zinc-200 bg-white"
+              : "border-zinc-800 bg-zinc-950"
+          }`}
+        >
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div
+                  className={`mb-2 text-[10px] uppercase tracking-[0.28em] sm:text-xs ${
+                    isLight ? "text-amber-700/80" : "text-yellow-500/70"
+                  }`}
+                >
+                  Luxury Showcase
+                </div>
+                <h1
+                  className={`text-2xl font-bold sm:text-3xl md:text-5xl ${
+                    isLight ? "text-amber-700" : "text-yellow-400"
+                  }`}
+                >
+                  Jewelry Collection
+                </h1>
+                <p
+                  className={`mt-2 max-w-2xl text-sm leading-6 md:text-base ${
+                    isLight ? "text-zinc-600" : "text-zinc-400"
+                  }`}
+                >
+                  Search by name, barcode, or weight and sort products the way
+                  you want.
+                </p>
               </div>
-              <h1 className="text-2xl font-bold text-yellow-400 sm:text-3xl xl:text-5xl">
-                Jewelry Collection
-              </h1>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400 sm:text-base">
-                Browse your collection in a premium iPad-friendly layout and
-                switch between gallery mode and story mode.
-              </p>
+
+              <button
+                onClick={() => setTheme(isLight ? "dark" : "light")}
+                className={`rounded-2xl px-4 py-3 text-sm font-semibold sm:text-base ${
+                  isLight
+                    ? "bg-zinc-900 text-white"
+                    : "bg-yellow-500 text-black"
+                }`}
+              >
+                {isLight ? "Dark Mode" : "Light Mode"}
+              </button>
             </div>
 
-            <div className="flex w-full flex-col gap-3 xl:max-w-2xl xl:flex-row">
+            <div className="grid gap-3 lg:grid-cols-[1fr_220px]">
               <input
                 value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setStoryIndex(0);
-                }}
-                placeholder="Search by name or barcode"
-                className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm outline-none sm:text-base"
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by name / barcode / weight"
+                className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none sm:text-base ${
+                  isLight
+                    ? "border-zinc-300 bg-zinc-50"
+                    : "border-zinc-700 bg-zinc-900"
+                }`}
               />
 
-              <div className="flex overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-900">
-                <button
-                  onClick={() => setViewMode("gallery")}
-                  className={`px-4 py-3 text-sm sm:text-base ${
-                    viewMode === "gallery"
-                      ? "bg-yellow-500 font-semibold text-black"
-                      : "text-white"
-                  }`}
-                >
-                  Gallery
-                </button>
-                <button
-                  onClick={() => {
-                    setViewMode("story");
-                    setStoryIndex(0);
-                  }}
-                  className={`px-4 py-3 text-sm sm:text-base ${
-                    viewMode === "story"
-                      ? "bg-yellow-500 font-semibold text-black"
-                      : "text-white"
-                  }`}
-                >
-                  Story
-                </button>
-              </div>
+              <select
+                value={sortMode}
+                onChange={(e) => setSortMode(e.target.value as SortMode)}
+                className={`rounded-2xl border px-4 py-3 text-sm outline-none sm:text-base ${
+                  isLight
+                    ? "border-zinc-300 bg-zinc-50"
+                    : "border-zinc-700 bg-zinc-900"
+                }`}
+              >
+                <option value="mix">Mix / Default</option>
+                <option value="weight">Sort by Weight</option>
+                <option value="barcode">Sort by Barcode</option>
+              </select>
             </div>
           </div>
         </div>
 
-        <div className="mb-4 flex flex-wrap gap-2 sm:gap-3">
+        <div className="mb-5 flex flex-wrap gap-2 sm:mb-6 md:mb-8 md:gap-3">
           <button
-            onClick={() => {
-              setActiveCategory("All");
-              setStoryIndex(0);
-            }}
+            onClick={() => setActiveCategory("All")}
             className={`rounded-full border px-4 py-2 text-sm transition ${
               activeCategory === "All"
-                ? "border-yellow-500 bg-yellow-500 text-black"
-                : "border-zinc-700 bg-zinc-900 text-white"
+                ? isLight
+                  ? "border-zinc-900 bg-zinc-900 text-white"
+                  : "border-yellow-500 bg-yellow-500 text-black"
+                : isLight
+                  ? "border-zinc-300 bg-white text-zinc-900"
+                  : "border-zinc-700 bg-zinc-900 text-white"
             }`}
           >
             All
@@ -207,14 +199,15 @@ export default function Home() {
           {categories.map((category) => (
             <button
               key={category.id}
-              onClick={() => {
-                setActiveCategory(category.name);
-                setStoryIndex(0);
-              }}
+              onClick={() => setActiveCategory(category.name)}
               className={`rounded-full border px-4 py-2 text-sm transition ${
                 activeCategory === category.name
-                  ? "border-yellow-500 bg-yellow-500 text-black"
-                  : "border-zinc-700 bg-zinc-900 text-white"
+                  ? isLight
+                    ? "border-zinc-900 bg-zinc-900 text-white"
+                    : "border-yellow-500 bg-yellow-500 text-black"
+                  : isLight
+                    ? "border-zinc-300 bg-white text-zinc-900"
+                    : "border-zinc-700 bg-zinc-900 text-white"
               }`}
             >
               {category.name}
@@ -222,179 +215,104 @@ export default function Home() {
           ))}
         </div>
 
-        {viewMode === "gallery" ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-3">
-            {filteredProducts.map((product) => {
-              const isSold = product.status === "sold";
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {filteredProducts.map((product) => {
+            const isSold = product.status === "sold";
 
-              return (
-                <button
-                  key={product.id}
-                  onClick={() => {
-                    setSelectedProduct(product);
-                    setActiveImageIndex(0);
-                  }}
-                  className={`overflow-hidden rounded-[30px] border bg-zinc-950 p-4 text-left transition lg:p-5 ${
-                    isSold
-                      ? "border-zinc-800 opacity-70 hover:border-zinc-700"
-                      : "border-zinc-800 hover:border-yellow-500"
+            return (
+              <button
+                key={product.id}
+                onClick={() => {
+                  setSelectedProduct(product);
+                  setActiveImageIndex(0);
+                }}
+                className={`overflow-hidden rounded-3xl border p-4 text-left transition ${
+                  isSold ? "opacity-70" : ""
+                } ${
+                  isLight
+                    ? "border-zinc-200 bg-white hover:border-zinc-400"
+                    : "border-zinc-800 bg-zinc-950 hover:border-yellow-500"
+                }`}
+              >
+                <div className="mx-auto aspect-[9/16] w-full max-w-[320px] overflow-hidden rounded-2xl">
+                  <img
+                    src={
+                      (product.images && product.images[0]) ||
+                      product.image ||
+                      "https://via.placeholder.com/600x1066?text=Jewelry"
+                    }
+                    alt={product.name}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <h2 className="text-lg font-semibold sm:text-xl">
+                    {product.name}
+                  </h2>
+                  <div
+                    className={`rounded-full border px-3 py-1 text-[11px] ${statusBadge(
+                      product.status
+                    )}`}
+                  >
+                    {statusLabel[product.status]}
+                  </div>
+                </div>
+
+                <p
+                  className={`mt-2 line-clamp-2 text-sm leading-6 ${
+                    isLight ? "text-zinc-600" : "text-gray-400"
                   }`}
                 >
-                  <div className="mx-auto aspect-[9/16] w-full max-w-[360px] overflow-hidden rounded-[24px]">
-                    <img
-                      src={
-                        (product.images && product.images[0]) ||
-                        product.image ||
-                        "https://via.placeholder.com/600x1066?text=Jewelry"
-                      }
-                      alt={product.name}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
+                  {product.description}
+                </p>
 
-                  <div className="mt-4 flex flex-wrap items-center gap-2">
-                    <h2 className="text-lg font-semibold sm:text-xl">
-                      {product.name}
-                    </h2>
-                    <div
-                      className={`rounded-full border px-3 py-1 text-[11px] ${statusBadge(
-                        product.status
-                      )}`}
-                    >
-                      {statusLabel[product.status]}
-                    </div>
-                  </div>
+                <div
+                  className={`mt-3 text-sm sm:text-base ${
+                    isLight ? "text-amber-700" : "text-yellow-400"
+                  }`}
+                >
+                  {product.category}
+                </div>
 
-                  <p className="mt-2 text-sm leading-6 text-gray-400">
-                    {product.description}
-                  </p>
+                <div className="mt-1 text-xs text-cyan-400 sm:text-sm">
+                  Barcode: {product.barcode}
+                </div>
 
-                  <div className="mt-3 text-sm text-yellow-400 sm:text-base">
-                    {product.category}
-                  </div>
+                <div className="mt-1 text-xs text-violet-500 sm:text-sm">
+                  Weight: {product.weight}
+                </div>
+              </button>
+            );
+          })}
+        </div>
 
-                  <div className="mt-1 text-xs text-cyan-400 sm:text-sm">
-                    Barcode: {product.barcode}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        ) : (
+        {filteredProducts.length === 0 && (
           <div
-            className="rounded-[34px] border border-zinc-800 bg-zinc-950 p-3 sm:p-4 lg:p-5"
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
+            className={`mt-8 rounded-3xl border p-8 text-center ${
+              isLight
+                ? "border-zinc-200 bg-white text-zinc-500"
+                : "border-zinc-800 bg-zinc-950 text-gray-400"
+            }`}
           >
-            {currentStoryProduct ? (
-              <div className="grid min-h-[82vh] gap-4 xl:grid-cols-[480px_minmax(0,1fr)]">
-                <div className="flex items-center justify-center rounded-[30px] bg-black p-4">
-                  <div className="relative aspect-[9/16] w-full max-w-[420px] overflow-hidden rounded-[28px] border border-zinc-800">
-                    <img
-                      src={
-                        currentStoryGallery[0] ||
-                        "https://via.placeholder.com/600x1066?text=Jewelry"
-                      }
-                      alt={currentStoryProduct.name}
-                      className="h-full w-full object-cover"
-                    />
-
-                    <div className="absolute inset-x-0 top-0 flex gap-1 p-3">
-                      {filteredProducts.map((_, index) => (
-                        <div
-                          key={index}
-                          className={`h-1 flex-1 rounded-full ${
-                            index === storyIndex
-                              ? "bg-yellow-400"
-                              : "bg-white/20"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex min-h-0 flex-col rounded-[30px] bg-zinc-900/40 p-5 sm:p-6 xl:justify-between xl:p-10">
-                  <div>
-                    <div className="mb-3 flex flex-wrap items-center gap-2">
-                      <h2 className="text-2xl font-bold text-yellow-400 sm:text-3xl xl:text-5xl">
-                        {currentStoryProduct.name}
-                      </h2>
-                      <div
-                        className={`rounded-full border px-3 py-1 text-[11px] sm:text-xs ${statusBadge(
-                          currentStoryProduct.status
-                        )}`}
-                      >
-                        {statusLabel[currentStoryProduct.status]}
-                      </div>
-                    </div>
-
-                    <div className="mb-4 text-sm text-yellow-300/80 sm:text-base">
-                      {currentStoryProduct.category}
-                    </div>
-
-                    <p className="max-w-3xl text-sm leading-7 text-gray-300 sm:text-base sm:leading-8 xl:text-xl">
-                      {currentStoryProduct.description}
-                    </p>
-
-                    <div className="mt-5 text-sm text-cyan-400 sm:text-base">
-                      Barcode: {currentStoryProduct.barcode}
-                    </div>
-
-                    {currentStoryGallery.length > 1 && (
-                      <div className="mt-6 grid grid-cols-4 gap-2 sm:gap-3">
-                        {currentStoryGallery.map((img, index) => (
-                          <div
-                            key={img + index}
-                            className="overflow-hidden rounded-2xl border border-zinc-700"
-                          >
-                            <img
-                              src={img}
-                              alt={`${currentStoryProduct.name} ${index + 1}`}
-                              className="h-20 w-full object-cover sm:h-24"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-8 flex flex-wrap gap-3">
-                    <button
-                      onClick={prevStory}
-                      className="rounded-2xl border border-zinc-700 bg-zinc-950 px-5 py-3 text-sm text-white sm:text-base"
-                    >
-                      Previous
-                    </button>
-
-                    <button
-                      onClick={nextStory}
-                      className="rounded-2xl bg-yellow-500 px-5 py-3 text-sm font-semibold text-black sm:text-base"
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex min-h-[50vh] items-center justify-center rounded-[28px] bg-zinc-900/40 text-center text-gray-400">
-                No matching products found
-              </div>
-            )}
-          </div>
-        )}
-
-        {filteredProducts.length === 0 && viewMode === "gallery" && (
-          <div className="mt-8 rounded-3xl border border-zinc-800 bg-zinc-950 p-8 text-center text-gray-400">
             No matching products found
           </div>
         )}
 
         {selectedProduct && (
-          <div className="fixed inset-0 z-50 bg-black/90 p-3 sm:p-4">
-            <div className="mx-auto flex h-full max-w-7xl items-center justify-center">
-              <div className="relative flex h-full max-h-[96vh] w-full flex-col overflow-hidden rounded-[32px] border border-zinc-800 bg-zinc-950 shadow-2xl xl:grid xl:grid-cols-[460px_minmax(0,1fr)]">
+          <div
+            className={`fixed inset-0 z-50 p-3 sm:p-4 ${
+              isLight ? "bg-black/70" : "bg-black/90"
+            }`}
+          >
+            <div className="mx-auto flex h-full max-w-6xl items-center justify-center">
+              <div
+                className={`relative flex h-full max-h-[96vh] w-full flex-col overflow-hidden rounded-3xl border shadow-2xl xl:flex-row ${
+                  isLight
+                    ? "border-zinc-200 bg-white"
+                    : "border-zinc-800 bg-zinc-950"
+                }`}
+              >
                 <button
                   onClick={() => setSelectedProduct(null)}
                   className="absolute right-3 top-3 z-20 rounded-full bg-black/60 px-4 py-2 text-xs text-white backdrop-blur hover:bg-red-500 sm:right-4 sm:top-4 sm:text-sm"
@@ -402,8 +320,8 @@ export default function Home() {
                   Close
                 </button>
 
-                <div className="flex w-full flex-col items-center bg-black px-4 pb-4 pt-14 sm:px-5 xl:justify-center xl:p-5">
-                  <div className="relative aspect-[9/16] w-full max-w-[380px] overflow-hidden rounded-[26px] border border-zinc-800">
+                <div className="flex w-full flex-col items-center bg-black px-4 pb-4 pt-14 sm:px-5 xl:w-1/2 xl:justify-center xl:p-5">
+                  <div className="relative aspect-[9/16] w-full max-w-[260px] overflow-hidden rounded-2xl border border-zinc-800 sm:max-w-[300px]">
                     <img
                       src={
                         gallery[activeImageIndex] ||
@@ -432,7 +350,7 @@ export default function Home() {
                   </div>
 
                   {gallery.length > 1 && (
-                    <div className="mt-4 grid w-full max-w-[380px] grid-cols-4 gap-2 sm:gap-3">
+                    <div className="mt-4 grid w-full max-w-[260px] grid-cols-4 gap-2 sm:max-w-[300px]">
                       {gallery.map((img, index) => (
                         <button
                           key={img + index}
@@ -454,9 +372,13 @@ export default function Home() {
                   )}
                 </div>
 
-                <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-5 sm:p-6 xl:justify-center xl:p-10">
+                <div className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto p-5 sm:p-6 xl:w-1/2 xl:justify-center xl:p-10">
                   <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <h2 className="text-2xl font-bold text-yellow-400 sm:text-3xl xl:text-5xl">
+                    <h2
+                      className={`text-2xl font-bold sm:text-3xl ${
+                        isLight ? "text-amber-700" : "text-yellow-400"
+                      }`}
+                    >
                       {selectedProduct.name}
                     </h2>
                     <div
@@ -468,16 +390,30 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <p className="mb-5 text-sm leading-7 text-gray-300 sm:text-base sm:leading-8 xl:text-xl">
+                  <p
+                    className={`mb-5 text-sm leading-7 sm:text-base sm:leading-8 ${
+                      isLight ? "text-zinc-700" : "text-gray-300"
+                    }`}
+                  >
                     {selectedProduct.description}
                   </p>
 
-                  <div className="mb-4 inline-block w-fit rounded-full border border-yellow-500/30 bg-yellow-500/10 px-5 py-2 text-sm text-yellow-300">
+                  <div
+                    className={`mb-4 inline-block w-fit rounded-full border px-5 py-2 text-sm ${
+                      isLight
+                        ? "border-amber-300 bg-amber-50 text-amber-700"
+                        : "border-yellow-500/30 bg-yellow-500/10 text-yellow-300"
+                    }`}
+                  >
                     {selectedProduct.category}
                   </div>
 
                   <div className="text-sm text-cyan-400 sm:text-base">
                     Barcode: {selectedProduct.barcode}
+                  </div>
+
+                  <div className="mt-2 text-sm text-violet-500 sm:text-base">
+                    Weight: {selectedProduct.weight}
                   </div>
                 </div>
               </div>

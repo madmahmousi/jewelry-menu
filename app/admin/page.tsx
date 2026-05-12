@@ -12,7 +12,7 @@ import {
   ProductStatus,
 } from "../../lib/storage";
 
-const ADMIN_PASSWORD = "8569";
+const ADMIN_PASSWORD = "123456";
 
 const statusOptions: { value: ProductStatus; label: string }[] = [
   { value: "available", label: "Available" },
@@ -29,6 +29,7 @@ export default function AdminPage() {
   const [productDesc, setProductDesc] = useState("");
   const [productCategory, setProductCategory] = useState("");
   const [productBarcode, setProductBarcode] = useState("");
+  const [productWeight, setProductWeight] = useState("");
   const [productStatus, setProductStatus] = useState<ProductStatus>("available");
   const [productImages, setProductImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -42,9 +43,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     const auth = localStorage.getItem("admin-auth");
-    if (auth === "true") {
-      setAuthenticated(true);
-    }
+    if (auth === "true") setAuthenticated(true);
 
     setCategories(getCategories());
     setProducts(getProducts());
@@ -63,12 +62,14 @@ export default function AdminPage() {
       const barcode = product.barcode?.toLowerCase() || "";
       const category = product.category?.toLowerCase() || "";
       const status = product.status?.toLowerCase() || "";
+      const weight = String(product.weight ?? "");
 
       return (
         name.includes(q) ||
         barcode.includes(q) ||
         category.includes(q) ||
-        status.includes(q)
+        status.includes(q) ||
+        weight.includes(q)
       );
     });
   }, [sortedProducts, productSearch]);
@@ -87,6 +88,7 @@ export default function AdminPage() {
     setProductDesc("");
     setProductCategory("");
     setProductBarcode("");
+    setProductWeight("");
     setProductStatus("available");
     setProductImages([]);
     setEditingProductId(null);
@@ -136,9 +138,16 @@ export default function AdminPage() {
       !productName.trim() ||
       !productDesc.trim() ||
       !productCategory.trim() ||
-      !productBarcode.trim()
+      !productBarcode.trim() ||
+      !productWeight.trim()
     ) {
-      alert("Please fill all fields, including barcode.");
+      alert("Please fill all fields, including barcode and weight.");
+      return;
+    }
+
+    const parsedWeight = Number(productWeight);
+    if (Number.isNaN(parsedWeight)) {
+      alert("Weight must be a valid number.");
       return;
     }
 
@@ -154,6 +163,7 @@ export default function AdminPage() {
               description: productDesc.trim(),
               category: productCategory,
               barcode: productBarcode.trim(),
+              weight: parsedWeight,
               status: productStatus,
               image: mainImage,
               images: productImages,
@@ -176,6 +186,7 @@ export default function AdminPage() {
       description: productDesc.trim(),
       category: productCategory,
       barcode: productBarcode.trim(),
+      weight: parsedWeight,
       status: productStatus,
       image: mainImage,
       images: productImages,
@@ -204,6 +215,7 @@ export default function AdminPage() {
     setProductDesc(product.description);
     setProductCategory(product.category);
     setProductBarcode(product.barcode || "");
+    setProductWeight(String(product.weight ?? ""));
     setProductStatus(product.status || "available");
     setProductImages(
       product.images && product.images.length > 0
@@ -212,6 +224,7 @@ export default function AdminPage() {
           ? [product.image]
           : []
     );
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -245,8 +258,8 @@ export default function AdminPage() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const cloudName = "dsbmiysgs";
-    const uploadPreset = "jewelry_unsigned";
+    const cloudName = "YOUR_CLOUD_NAME";
+    const uploadPreset = "YOUR_UPLOAD_PRESET";
 
     try {
       setUploading(true);
@@ -544,6 +557,13 @@ export default function AdminPage() {
                 className="mb-4 w-full rounded-xl bg-zinc-900 p-3"
               />
 
+              <input
+                value={productWeight}
+                onChange={(e) => setProductWeight(e.target.value)}
+                placeholder="Weight"
+                className="mb-4 w-full rounded-xl bg-zinc-900 p-3"
+              />
+
               <select
                 value={productCategory}
                 onChange={(e) => setProductCategory(e.target.value)}
@@ -620,7 +640,7 @@ export default function AdminPage() {
               <input
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
-                placeholder="Search by name / barcode / category"
+                placeholder="Search by name / barcode / category / weight"
                 className="w-full max-w-sm rounded-xl bg-zinc-900 p-3"
               />
             </div>
@@ -673,6 +693,9 @@ export default function AdminPage() {
                     </div>
                     <div className="mt-1 text-sm text-cyan-400">
                       Barcode: {product.barcode}
+                    </div>
+                    <div className="mt-1 text-sm text-violet-400">
+                      Weight: {product.weight}
                     </div>
 
                     <div className="mt-3 flex flex-wrap gap-2">
