@@ -30,7 +30,8 @@ export default function AdminPage() {
   const [productCategory, setProductCategory] = useState("");
   const [productBarcode, setProductBarcode] = useState("");
   const [productWeight, setProductWeight] = useState("");
-  const [productStatus, setProductStatus] = useState<ProductStatus>("available");
+  const [productStatus, setProductStatus] =
+    useState<ProductStatus>("available");
   const [productImages, setProductImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
@@ -79,6 +80,7 @@ export default function AdminPage() {
       totalProducts: products.length,
       totalCategories: categories.length,
       available: products.filter((p) => p.status === "available").length,
+      reserved: products.filter((p) => p.status === "reserved").length,
       sold: products.filter((p) => p.status === "sold").length,
     };
   }, [products, categories]);
@@ -125,6 +127,7 @@ export default function AdminPage() {
     const updatedProducts = products.filter(
       (product) => product.category !== categoryToDelete.name
     );
+
     setProducts(updatedProducts);
     saveProducts(updatedProducts);
 
@@ -146,6 +149,7 @@ export default function AdminPage() {
     }
 
     const parsedWeight = Number(productWeight);
+
     if (Number.isNaN(parsedWeight)) {
       alert("Weight must be a valid number.");
       return;
@@ -268,9 +272,9 @@ export default function AdminPage() {
 
       for (const originalFile of Array.from(files)) {
         const compressedFile = await imageCompression(originalFile, {
-          maxSizeMB: 0.8,
-          maxWidthOrHeight: 1200,
-          initialQuality: 0.7,
+          maxSizeMB: 2.5,
+          maxWidthOrHeight: 2200,
+          initialQuality: 0.92,
           useWebWorker: true,
         });
 
@@ -450,7 +454,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="mb-6 grid gap-4 md:grid-cols-4">
+        <div className="mb-6 grid gap-4 md:grid-cols-5">
           <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
             <div className="text-sm text-zinc-400">Products</div>
             <div className="mt-2 text-3xl font-bold text-yellow-400">
@@ -473,6 +477,13 @@ export default function AdminPage() {
           </div>
 
           <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
+            <div className="text-sm text-zinc-400">Reserved</div>
+            <div className="mt-2 text-3xl font-bold text-amber-400">
+              {stats.reserved}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
             <div className="text-sm text-zinc-400">Sold</div>
             <div className="mt-2 text-3xl font-bold text-red-400">
               {stats.sold}
@@ -483,7 +494,9 @@ export default function AdminPage() {
         <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="space-y-6">
             <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-              <h2 className="mb-4 text-xl font-semibold">Category Management</h2>
+              <h2 className="mb-4 text-xl font-semibold">
+                Category Management
+              </h2>
 
               <input
                 value={category}
@@ -579,7 +592,9 @@ export default function AdminPage() {
 
               <select
                 value={productStatus}
-                onChange={(e) => setProductStatus(e.target.value as ProductStatus)}
+                onChange={(e) =>
+                  setProductStatus(e.target.value as ProductStatus)
+                }
                 className="mb-4 w-full rounded-xl bg-zinc-900 p-3"
               >
                 {statusOptions.map((option) => (
@@ -598,7 +613,9 @@ export default function AdminPage() {
               />
 
               {uploading && (
-                <p className="mb-4 text-sm text-yellow-400">Uploading images...</p>
+                <p className="mb-4 text-sm text-yellow-400">
+                  Uploading images...
+                </p>
               )}
 
               {productImages.length > 0 && (

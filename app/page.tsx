@@ -44,12 +44,15 @@ export default function Home() {
     const q = searchTerm.trim().toLowerCase();
 
     let result = products.filter((product) => {
+      if (product.status === "sold") return false;
+
       const matchCategory =
         activeCategory === "All" || product.category === activeCategory;
 
       const name = product.name?.toLowerCase() || "";
       const barcode = product.barcode?.toLowerCase() || "";
       const weight = String(product.weight ?? "");
+
       const matchSearch =
         !q || name.includes(q) || barcode.includes(q) || weight.includes(q);
 
@@ -58,11 +61,17 @@ export default function Home() {
 
     if (sortMode === "mix") {
       result = [...result].sort((a, b) => a.order - b.order);
-    } else if (sortMode === "weight") {
+    } else if (sortMode === "weightLight") {
       result = [...result].sort((a, b) => a.weight - b.weight);
-    } else if (sortMode === "barcode") {
+    } else if (sortMode === "weightHeavy") {
+      result = [...result].sort((a, b) => b.weight - a.weight);
+    } else if (sortMode === "barcodeAsc") {
       result = [...result].sort((a, b) =>
         String(a.barcode).localeCompare(String(b.barcode))
+      );
+    } else if (sortMode === "barcodeDesc") {
+      result = [...result].sort((a, b) =>
+        String(b.barcode).localeCompare(String(a.barcode))
       );
     }
 
@@ -122,6 +131,7 @@ export default function Home() {
                 >
                   Luxury Showcase
                 </div>
+
                 <h1
                   className={`text-2xl font-bold sm:text-3xl md:text-5xl ${
                     isLight ? "text-amber-700" : "text-yellow-400"
@@ -129,13 +139,14 @@ export default function Home() {
                 >
                   Jewelry Collection
                 </h1>
+
                 <p
                   className={`mt-2 max-w-2xl text-sm leading-6 md:text-base ${
                     isLight ? "text-zinc-600" : "text-zinc-400"
                   }`}
                 >
-                  Search by name, barcode, or weight and sort products the way
-                  you want.
+                  Sold products are hidden from this page. Search by name,
+                  barcode, or weight.
                 </p>
               </div>
 
@@ -151,7 +162,7 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="grid gap-3 lg:grid-cols-[1fr_220px]">
+            <div className="grid gap-3 lg:grid-cols-[1fr_260px]">
               <input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -173,8 +184,10 @@ export default function Home() {
                 }`}
               >
                 <option value="mix">Mix / Default</option>
-                <option value="weight">Sort by Weight</option>
-                <option value="barcode">Sort by Barcode</option>
+                <option value="weightLight">Weight: Light to Heavy</option>
+                <option value="weightHeavy">Weight: Heavy to Light</option>
+                <option value="barcodeAsc">Barcode: Low to High</option>
+                <option value="barcodeDesc">Barcode: High to Low</option>
               </select>
             </div>
           </div>
@@ -216,75 +229,70 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {filteredProducts.map((product) => {
-            const isSold = product.status === "sold";
+          {filteredProducts.map((product) => (
+            <button
+              key={product.id}
+              onClick={() => {
+                setSelectedProduct(product);
+                setActiveImageIndex(0);
+              }}
+              className={`overflow-hidden rounded-3xl border p-4 text-left transition ${
+                isLight
+                  ? "border-zinc-200 bg-white hover:border-zinc-400"
+                  : "border-zinc-800 bg-zinc-950 hover:border-yellow-500"
+              }`}
+            >
+              <div className="mx-auto aspect-[9/16] w-full max-w-[340px] overflow-hidden rounded-2xl">
+                <img
+                  src={
+                    (product.images && product.images[0]) ||
+                    product.image ||
+                    "https://via.placeholder.com/600x1066?text=Jewelry"
+                  }
+                  alt={product.name}
+                  className="h-full w-full object-cover"
+                />
+              </div>
 
-            return (
-              <button
-                key={product.id}
-                onClick={() => {
-                  setSelectedProduct(product);
-                  setActiveImageIndex(0);
-                }}
-                className={`overflow-hidden rounded-3xl border p-4 text-left transition ${
-                  isSold ? "opacity-70" : ""
-                } ${
-                  isLight
-                    ? "border-zinc-200 bg-white hover:border-zinc-400"
-                    : "border-zinc-800 bg-zinc-950 hover:border-yellow-500"
-                }`}
-              >
-                <div className="mx-auto aspect-[9/16] w-full max-w-[320px] overflow-hidden rounded-2xl">
-                  <img
-                    src={
-                      (product.images && product.images[0]) ||
-                      product.image ||
-                      "https://via.placeholder.com/600x1066?text=Jewelry"
-                    }
-                    alt={product.name}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <h2 className="text-lg font-semibold sm:text-xl">
-                    {product.name}
-                  </h2>
-                  <div
-                    className={`rounded-full border px-3 py-1 text-[11px] ${statusBadge(
-                      product.status
-                    )}`}
-                  >
-                    {statusLabel[product.status]}
-                  </div>
-                </div>
-
-                <p
-                  className={`mt-2 line-clamp-2 text-sm leading-6 ${
-                    isLight ? "text-zinc-600" : "text-gray-400"
-                  }`}
-                >
-                  {product.description}
-                </p>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <h2 className="text-lg font-semibold sm:text-xl">
+                  {product.name}
+                </h2>
 
                 <div
-                  className={`mt-3 text-sm sm:text-base ${
-                    isLight ? "text-amber-700" : "text-yellow-400"
-                  }`}
+                  className={`rounded-full border px-3 py-1 text-[11px] ${statusBadge(
+                    product.status
+                  )}`}
                 >
-                  {product.category}
+                  {statusLabel[product.status]}
                 </div>
+              </div>
 
-                <div className="mt-1 text-xs text-cyan-400 sm:text-sm">
-                  Barcode: {product.barcode}
-                </div>
+              <p
+                className={`mt-2 line-clamp-2 text-sm leading-6 ${
+                  isLight ? "text-zinc-600" : "text-gray-400"
+                }`}
+              >
+                {product.description}
+              </p>
 
-                <div className="mt-1 text-xs text-violet-500 sm:text-sm">
-                  Weight: {product.weight}
-                </div>
-              </button>
-            );
-          })}
+              <div
+                className={`mt-3 text-sm sm:text-base ${
+                  isLight ? "text-amber-700" : "text-yellow-400"
+                }`}
+              >
+                {product.category}
+              </div>
+
+              <div className="mt-1 text-xs text-cyan-400 sm:text-sm">
+                Barcode: {product.barcode}
+              </div>
+
+              <div className="mt-1 text-xs text-violet-500 sm:text-sm">
+                Weight: {product.weight}
+              </div>
+            </button>
+          ))}
         </div>
 
         {filteredProducts.length === 0 && (
@@ -321,7 +329,7 @@ export default function Home() {
                 </button>
 
                 <div className="flex w-full flex-col items-center bg-black px-4 pb-4 pt-14 sm:px-5 xl:w-1/2 xl:justify-center xl:p-5">
-                  <div className="relative aspect-[9/16] w-full max-w-[260px] overflow-hidden rounded-2xl border border-zinc-800 sm:max-w-[300px]">
+                  <div className="relative aspect-[9/16] w-full max-w-[320px] overflow-hidden rounded-2xl border border-zinc-800 sm:max-w-[380px]">
                     <img
                       src={
                         gallery[activeImageIndex] ||
@@ -350,7 +358,7 @@ export default function Home() {
                   </div>
 
                   {gallery.length > 1 && (
-                    <div className="mt-4 grid w-full max-w-[260px] grid-cols-4 gap-2 sm:max-w-[300px]">
+                    <div className="mt-4 grid w-full max-w-[320px] grid-cols-4 gap-2 sm:max-w-[380px]">
                       {gallery.map((img, index) => (
                         <button
                           key={img + index}
@@ -381,6 +389,7 @@ export default function Home() {
                     >
                       {selectedProduct.name}
                     </h2>
+
                     <div
                       className={`rounded-full border px-3 py-1 text-[11px] sm:text-xs ${statusBadge(
                         selectedProduct.status

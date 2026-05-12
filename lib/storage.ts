@@ -4,7 +4,13 @@ export type Category = {
 };
 
 export type ProductStatus = "available" | "reserved" | "sold";
-export type SortMode = "mix" | "weight" | "barcode";
+
+export type SortMode =
+  | "mix"
+  | "weightLight"
+  | "weightHeavy"
+  | "barcodeAsc"
+  | "barcodeDesc";
 
 export type Product = {
   id: number;
