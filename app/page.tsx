@@ -110,15 +110,17 @@ export default function Home() {
   return (
     <main
       className={`min-h-screen px-3 py-4 sm:px-5 sm:py-6 md:px-8 md:py-8 ${
-        isLight ? "bg-zinc-100 text-zinc-900" : "bg-black text-white"
+        isLight
+          ? "bg-zinc-100 text-zinc-900"
+          : "bg-slate-950 text-white"
       }`}
     >
       <div className="mx-auto max-w-7xl">
         <div
-          className={`mb-5 rounded-[24px] border p-4 sm:mb-6 sm:p-5 md:mb-8 md:p-8 ${
+          className={`mb-5 rounded-[24px] border p-4 shadow-2xl sm:mb-6 sm:p-5 md:mb-8 md:p-8 ${
             isLight
               ? "border-zinc-200 bg-white"
-              : "border-zinc-800 bg-zinc-950"
+              : "border-slate-700/60 bg-slate-900/75 backdrop-blur-xl"
           }`}
         >
           <div className="flex flex-col gap-4">
@@ -142,7 +144,7 @@ export default function Home() {
 
                 <p
                   className={`mt-2 max-w-2xl text-sm leading-6 md:text-base ${
-                    isLight ? "text-zinc-600" : "text-zinc-400"
+                    isLight ? "text-zinc-600" : "text-slate-300"
                   }`}
                 >
                   Sold products are hidden from this page. Search by name,
@@ -154,7 +156,7 @@ export default function Home() {
                 onClick={() => setTheme(isLight ? "dark" : "light")}
                 className={`rounded-2xl px-4 py-3 text-sm font-semibold sm:text-base ${
                   isLight
-                    ? "bg-zinc-900 text-white"
+                    ? "bg-slate-900 text-white"
                     : "bg-yellow-500 text-black"
                 }`}
               >
@@ -170,7 +172,7 @@ export default function Home() {
                 className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none sm:text-base ${
                   isLight
                     ? "border-zinc-300 bg-zinc-50"
-                    : "border-zinc-700 bg-zinc-900"
+                    : "border-slate-700 bg-slate-800/70 backdrop-blur"
                 }`}
               />
 
@@ -180,7 +182,7 @@ export default function Home() {
                 className={`rounded-2xl border px-4 py-3 text-sm outline-none sm:text-base ${
                   isLight
                     ? "border-zinc-300 bg-zinc-50"
-                    : "border-zinc-700 bg-zinc-900"
+                    : "border-slate-700 bg-slate-800/70 backdrop-blur"
                 }`}
               >
                 <option value="mix">Mix / Default</option>
@@ -203,7 +205,7 @@ export default function Home() {
                   : "border-yellow-500 bg-yellow-500 text-black"
                 : isLight
                   ? "border-zinc-300 bg-white text-zinc-900"
-                  : "border-zinc-700 bg-zinc-900 text-white"
+                  : "border-slate-700 bg-slate-900/80 text-white backdrop-blur"
             }`}
           >
             All
@@ -220,7 +222,7 @@ export default function Home() {
                     : "border-yellow-500 bg-yellow-500 text-black"
                   : isLight
                     ? "border-zinc-300 bg-white text-zinc-900"
-                    : "border-zinc-700 bg-zinc-900 text-white"
+                    : "border-slate-700 bg-slate-900/80 text-white backdrop-blur"
               }`}
             >
               {category.name}
@@ -236,10 +238,10 @@ export default function Home() {
                 setSelectedProduct(product);
                 setActiveImageIndex(0);
               }}
-              className={`overflow-hidden rounded-3xl border p-4 text-left transition ${
+              className={`overflow-hidden rounded-3xl border p-4 text-left shadow-xl transition ${
                 isLight
                   ? "border-zinc-200 bg-white hover:border-zinc-400"
-                  : "border-zinc-800 bg-zinc-950 hover:border-yellow-500"
+                  : "border-slate-700/70 bg-slate-900/75 backdrop-blur-xl hover:border-yellow-500"
               }`}
             >
               <div className="mx-auto aspect-[9/16] w-full max-w-[340px] overflow-hidden rounded-2xl">
@@ -270,7 +272,7 @@ export default function Home() {
 
               <p
                 className={`mt-2 line-clamp-2 text-sm leading-6 ${
-                  isLight ? "text-zinc-600" : "text-gray-400"
+                  isLight ? "text-zinc-600" : "text-slate-300"
                 }`}
               >
                 {product.description}
@@ -288,7 +290,7 @@ export default function Home() {
                 Barcode: {product.barcode}
               </div>
 
-              <div className="mt-1 text-xs text-violet-500 sm:text-sm">
+              <div className="mt-1 text-xs text-violet-400 sm:text-sm">
                 Weight: {product.weight}
               </div>
             </button>
@@ -300,7 +302,7 @@ export default function Home() {
             className={`mt-8 rounded-3xl border p-8 text-center ${
               isLight
                 ? "border-zinc-200 bg-white text-zinc-500"
-                : "border-zinc-800 bg-zinc-950 text-gray-400"
+                : "border-slate-700 bg-slate-900/75 text-slate-300 backdrop-blur-xl"
             }`}
           >
             No matching products found
@@ -310,7 +312,7 @@ export default function Home() {
         {selectedProduct && (
           <div
             className={`fixed inset-0 z-50 p-3 sm:p-4 ${
-              isLight ? "bg-black/70" : "bg-black/90"
+              isLight ? "bg-black/70" : "bg-slate-950/90"
             }`}
           >
             <div className="mx-auto flex h-full max-w-6xl items-center justify-center">
@@ -318,7 +320,7 @@ export default function Home() {
                 className={`relative flex h-full max-h-[96vh] w-full flex-col overflow-hidden rounded-3xl border shadow-2xl xl:flex-row ${
                   isLight
                     ? "border-zinc-200 bg-white"
-                    : "border-zinc-800 bg-zinc-950"
+                    : "border-slate-700 bg-slate-900/85 backdrop-blur-xl"
                 }`}
               >
                 <button
@@ -328,8 +330,8 @@ export default function Home() {
                   Close
                 </button>
 
-                <div className="flex w-full flex-col items-center bg-black px-4 pb-4 pt-14 sm:px-5 xl:w-1/2 xl:justify-center xl:p-5">
-                  <div className="relative aspect-[9/16] w-full max-w-[320px] overflow-hidden rounded-2xl border border-zinc-800 sm:max-w-[380px]">
+                <div className="flex w-full flex-col items-center bg-slate-950 px-4 pb-4 pt-14 sm:px-5 xl:w-1/2 xl:justify-center xl:p-5">
+                  <div className="relative aspect-[9/16] w-full max-w-[320px] overflow-hidden rounded-2xl border border-slate-700 sm:max-w-[380px]">
                     <img
                       src={
                         gallery[activeImageIndex] ||
@@ -366,7 +368,7 @@ export default function Home() {
                           className={`overflow-hidden rounded-xl border ${
                             activeImageIndex === index
                               ? "border-yellow-500"
-                              : "border-zinc-700"
+                              : "border-slate-700"
                           }`}
                         >
                           <img
@@ -401,7 +403,7 @@ export default function Home() {
 
                   <p
                     className={`mb-5 text-sm leading-7 sm:text-base sm:leading-8 ${
-                      isLight ? "text-zinc-700" : "text-gray-300"
+                      isLight ? "text-zinc-700" : "text-slate-300"
                     }`}
                   >
                     {selectedProduct.description}
@@ -421,7 +423,7 @@ export default function Home() {
                     Barcode: {selectedProduct.barcode}
                   </div>
 
-                  <div className="mt-2 text-sm text-violet-500 sm:text-base">
+                  <div className="mt-2 text-sm text-violet-400 sm:text-base">
                     Weight: {selectedProduct.weight}
                   </div>
                 </div>
