@@ -262,8 +262,8 @@ export default function AdminPage() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const cloudName = "YOUR_CLOUD_NAME";
-    const uploadPreset = "YOUR_UPLOAD_PRESET";
+    const cloudName = "dsbmiysgs";
+    const uploadPreset = "jewelry_unsigned";
 
     try {
       setUploading(true);
